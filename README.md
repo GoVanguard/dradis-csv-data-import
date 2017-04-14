@@ -77,7 +77,7 @@ sudo pip install argparse
 
 ## Script Configuration
 
-#### Dradis API
+### Dradis API
 For Dradis REST API information go to: https://dradisframework.com/pro/support/guides/rest_api/
 
 ### CSV File
