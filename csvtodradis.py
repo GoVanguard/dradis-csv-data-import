@@ -1,7 +1,7 @@
 from json import dumps
 from requests import Session
 import csv
-from sys import argv, exit
+from sys import argv, exit, version
 from argparse import ArgumentParser
 
 
@@ -12,10 +12,11 @@ class CsvToDradis(object):
             print("wrong argument amount. see HELP")
             exit(-6)
         self._headers = {}
-        self.title_column = 0      # 'title' column  in csv required for all imports
-        self.node_name_column = 0  # 'node_name' column in csv required for both nodes imports
-        self.issue_id_column = 0   # 'issue_id' column in csv required for nodes w/evidence imports
+        self.title_column = 0      # 'title' column  in csv required for all exports
+        self.node_name_column = 0  # 'node_name' column in csv required for both nodes exports
+        self.issue_id_column = 0   # 'issue_id' column in csv required for nodes w/evidence exports
         # Dradis API Configuration
+        self.verify_cert = True    # change this to make requests without verifying
         self.dradis_api_token = self.arg.dradis_api_token
         self.dradis_project_id = self.arg.dradis_project_id
         self.dradis_url = self.arg.dradis_url
@@ -30,7 +31,11 @@ class CsvToDradis(object):
         try:
             with open(self.arg.CSV_Filename)as csvfile:
                 mycsv = csv.reader(csvfile, delimiter=',')
-                headers = mycsv.__next__()
+                # Python 2.x and 3.x compatibility
+                if version > '3':
+                    headers = mycsv.__next__()
+                else:
+                    headers = mycsv.next()
                 self.csv_header_check(headers)
                 if self.arg.issue:
                     self.create_issues(mycsv)
@@ -42,7 +47,7 @@ class CsvToDradis(object):
             print(e)
             exit(-1)
         self.session.close()
-        print("Finished importing.")
+        print("Finished exporting.")
         return 0
 
     def create_issues(self, _csv):
@@ -52,11 +57,11 @@ class CsvToDradis(object):
             for k in self._headers.keys():
                 text += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
             issue_data = {'issue': {'text': text}}
-            dradis = self.session.post(self.dradis_issues_url, data=dumps(issue_data), verify=False)
+            dradis = self.session.post(self.dradis_issues_url, data=dumps(issue_data), verify=self.verify_cert)
             if dradis.status_code == 201:
-                print("Row {0} Issue was imported". format(counter))
+                print("Row {0} Issue was exported into Dradis". format(counter))
             else:
-                print("Row {0} Issue was not imported: {1}\n\n".format(counter, dradis.text))
+                print("Row {0} Issue was not exported into Dradis: {1}\n\n".format(counter, dradis.text))
             counter += 1
         return
 
@@ -70,11 +75,11 @@ class CsvToDradis(object):
                     for k in self._headers.keys():
                         notes += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
                     note = self.session.post(self.dradis_nodes_url + '{0}/notes'.format(n['id']),
-                                             data=dumps({"note": {"text": notes}, "category_id": 1}))
+                                             data=dumps({"note": {"text": notes}, "category_id": 1}), verify=self.verify_cert)
                     if note.status_code == 201:
-                        print("Row {0} Note was imported\n\n".format(counter))
+                        print("Row {0} Note was exported into Dradis\n\n".format(counter))
                     else:
-                        print("Row {0} Note was not imported: {1}\n\n".format(counter, note.text))
+                        print("Row {0} Note was not exported into Dradis: {1}\n\n".format(counter, note.text))
                     counter += 1
                     break
             else:
@@ -82,17 +87,17 @@ class CsvToDradis(object):
                 for k in self._headers.keys():
                     notes += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
                 node_data = {'node': {'label': row[self.node_name_column], "parent_id": None, 'type_id': 0}}
-                node = self.session.post(self.dradis_nodes_url, data=dumps(node_data), verify=False)
+                node = self.session.post(self.dradis_nodes_url, data=dumps(node_data), verify=self.verify_cert)
                 if node.status_code == 201:
-                    print("Row {0} Node was imported into Dradis".format(counter))
+                    print("Row {0} Node was exported into Dradis".format(counter))
                 else:
-                    print("Row {0} Node was not imported into Dradis: {1}".format(counter, node.text))
+                    print("Row {0} Node was not exported into Dradis: {1}".format(counter, node.text))
                 note = self.session.post(self.dradis_nodes_url + '{0}/notes'.format(node.json()['id']),
-                                         data=dumps({"note": {"text": notes}, "category_id": 1}))
+                                         data=dumps({"note": {"text": notes}, "category_id": 1}), verify=self.verify_cert)
                 if note.status_code == 201:
-                    print("Row {0} Note was imported into Dradis\n\n".format(counter))
+                    print("Row {0} Note was exported into Dradis\n\n".format(counter))
                 else:
-                    print("Row {0} Note was not imported into Dradis: {1}\n\n".format(counter, note.text))
+                    print("Row {0} Note was not exported into Dradis: {1}\n\n".format(counter, note.text))
                 counter += 1
         return
 
@@ -107,11 +112,11 @@ class CsvToDradis(object):
                         content += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
                     evidence = self.session.post(self.dradis_nodes_url + '{0}/evidence'.format(n['id']),
                                                  data=dumps({"evidence": {"content": content,
-                                                             "issue_id": row[self.issue_id_column]}}))
+                                                             "issue_id": row[self.issue_id_column]}}), verify=self.verify_cert)
                     if evidence.status_code == 201:
-                        print("Row {0} Evidence was imported\n\n".format(counter))
+                        print("Row {0} Evidence was exported into Dradis\n\n".format(counter))
                     else:
-                        print("Row {0} Evidence was not imported: {1}\n\n".format(counter, evidence.text))
+                        print("Row {0} Evidence was not exported into Dradis: {1}\n\n".format(counter, evidence.text))
                     counter += 1
                     break
             else:
@@ -119,38 +124,39 @@ class CsvToDradis(object):
                 for k in self._headers.keys():
                     content += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
                 node_data = {'node': {'label': row[self.node_name_column], "parent_id": None, 'type_id': 0}}
-                node = self.session.post(self.dradis_nodes_url, data=dumps(node_data), verify=False)
+                node = self.session.post(self.dradis_nodes_url, data=dumps(node_data), verify=self.verify_cert)
                 if node.status_code == 201:
-                    print("Row {0} Node was imported".format(counter))
+                    print("Row {0} Node was exported into Dradis".format(counter))
                 else:
-                    print("Row {0} Node was not imported into Dradis: {1}".format(counter, node.text))
+                    print("Row {0} Node was not exported into Dradis: {1}".format(counter, node.text))
                 evidence = self.session.post(self.dradis_nodes_url + '{0}/evidence'.format(node.json()['id']),
                                              data=dumps({"evidence": {"content": content,
-                                                                      "issue_id": row[self.issue_id_column]}}))
+                                                                      "issue_id": row[self.issue_id_column]}}), verify=self.verify_cert)
                 if evidence.status_code == 201:
-                    print("Row {0} Evidence was imported\n\n".format(counter))
+                    print("Row {0} Evidence was exported into Dradis\n\n".format(counter))
                 else:
-                    print("Row {0} Evidence was not imported: {1}\n\n".format(counter, evidence.text))
+                    print("Row {0} Evidence was not exported into Dradis: {1}\n\n".format(counter, evidence.text))
                 counter += 1
         return
 
     def csv_header_check(self, headers):
+        print(headers)
         if "title" not in [h.lower() for h in headers]:
             print("The first row of your csv must have a column named 'title' that contains the titles of your "
                   "notes. Fix your csv and then try again.")
             exit(-1)
         if self.arg.nodenote:
             if "node_name" not in [h.lower() for h in headers]:
-                print("For 'node w/note import' the first row of your csv must have a column named 'node_name'. "
+                print("For 'node w/note export' the first row of your csv must have a column named 'node_name'. "
                       "Fix your csv and try again.")
                 exit(-1)
         elif self.arg.nodeevidence:
             if "node_name" not in [h.lower() for h in headers]:
-                print("For 'node w/evidence import' the first row of your csv must have a column named "
+                print("For 'node w/evidence export' the first row of your csv must have a column named "
                       "'node_name'. Fix your csv and try again.")
                 exit(-1)
             elif "issue_id" not in [h.lower() for h in headers]:
-                print("For 'node w/evidence import', the first row of your csv must have a column named "
+                print("For 'node w/evidence export', the first row of your csv must have a column named "
                       "'issue_id' that contains the ids of the issues that you will use as evidence. "
                       "Fix your csv and try again.")
                 exit(-1)
@@ -192,13 +198,13 @@ class CsvToDradis(object):
         # parse the arguments
         parser = ArgumentParser(epilog='\tExample: \r\npython ' + argv[0] +
                                        " -i issues.csv https://dradis-pro.dev 21 xa632ghas87d393287",
-                                description="Open .CSV  and iport the data into Dradis as issues, nodes w/notes, or "
-                                            "nodes w/evidence. 'title' heading required for all import types. "
+                                description="Open .CSV  and export the data to Dradis as issues, nodes w/notes, or "
+                                            "nodes w/evidence. 'title' heading required for all export types. "
                                             "'node_name' heading required for nodes w/evidence "
-                                            "import & nodes w/note import. nodes w/evidence requires an 'issue_id' "
+                                            "export & nodes w/note export. nodes w/evidence requires an 'issue_id' "
                                             "heading in your csv. If the node already exist then the remaining data "
-                                            "will be added as a note or evidence depending on the import type\n Example"
-                                            " issues import CSV heading layout: title,heading1,heading2,etc..\n\n"
+                                            "will be added as a note or evidence depending on the export type\n Example"
+                                            " issues export CSV heading layout: title,heading1,heading2,etc..\n\n"
                                             "Example nodes w/notes CSV heading layout: node_name,title,heading1,"
                                             "heading2,..etc\n\nExample nodes w/evidence CSV heading layout: "
                                             "node_name,title,issue_id,heading1,heading2,..etc\n\n")
