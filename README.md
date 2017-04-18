@@ -81,9 +81,7 @@ sudo pip install argparse
 For Dradis REST API information go to: https://dradisframework.com/pro/support/guides/rest_api/
 
 ### CSV File
-The first row of the CSV file must be the column names/headings. A 'title' heading  is required for all import types.
-A 'node_name' heading required for Nodes w/evidence imports & Nodes w/Note imports. Nodes w/Evidence requires an 'issue_id'
-heading in your CSV. The heading order and case does not matter. The other headings and data will become text in your Issues, Notes, and Evidence. The easiest way to create a CSV file is to create a table in Excel and then save it as a CSV.
+The CSV file must be saved in **UTF-8** format. The first row of the CSV file must be the column names/headings. A 'title' heading  is required for all import types. A 'node_name' heading required for Nodes w/evidence imports & Nodes w/Note imports. Nodes w/Evidence requires an 'issue_id' heading in your CSV. The heading order and case does not matter. The other headings and data will become text in your Issues, Notes, and Evidence. The easiest way to create a CSV file is to create a table in Excel and then save it as a CSV.
 
 #### Issues CSV Example  
 Title,Impact,Ease,CVSS,Summary  
