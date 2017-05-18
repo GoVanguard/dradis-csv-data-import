@@ -155,7 +155,7 @@ class CsvToDradis(object):
                 print("For 'node w/evidence export' the first row of your csv must have a column named "
                       "'node_name'. Fix your csv and try again.")
                 exit(-1)
-            elif "issue_id" not in [h.lower() for h in headers]:
+            if "issue_id" not in [h.lower() for h in headers]:
                 print("For 'node w/evidence export', the first row of your csv must have a column named "
                       "'issue_id' that contains the ids of the issues that you will use as evidence. "
                       "Fix your csv and try again.")
