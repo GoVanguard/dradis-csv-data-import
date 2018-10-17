@@ -11,7 +11,7 @@ git clone https://github.com/GoVanguard/csv-data-import-dradis.git
 
 csv-data-import-dradis currently supports **Python 3**.
 
-* The recommened version for Python 3 is **3.6.x**
+* The recommened version for Python 3 is **3.6.x** or higher.
 
 ## Dependencies:
 
