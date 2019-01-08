@@ -1,5 +1,7 @@
 Dradis-CSV-Data-Import (https://govanguard.io)
 ==
+[![Build Status](https://travis-ci.com/GoVanguard/dradis-csv-data-import.svg?branch=master)](https://travis-ci.com/GoVanguard/dradis-csv-data-import)
+[![Known Vulnerabilities](https://snyk.io/test/github/GoVanguard/dradis-csv-data-import/badge.svg?targetFile=requirements.txt)](https://snyk.io/test/github/GoVanguard/dradis-csv-data-import?targetFile=requirements.txt)
 [![Maintainability](https://api.codeclimate.com/v1/badges/96f876225bd0bf4c8519/maintainability)](https://codeclimate.com/github/GoVanguard/dradis-import-cve-details/maintainability)
 
 # About csv-data-import-dradis
