@@ -1,4 +1,8 @@
-# csv-data-import-dradis
+Dradis-CSV-Data-Import (https://govanguard.io)
+==
+[![Maintainability](https://api.codeclimate.com/v1/badges/96f876225bd0bf4c8519/maintainability)](https://codeclimate.com/github/GoVanguard/dradis-import-cve-details/maintainability)
+
+# About csv-data-import-dradis
 Imports issues, nodes, evidence and notes with custom fields from a CSV file into Dradis projects via RestAPI. If the Nodes already exist then new Notes or Evidence will be added to the existing Node.
 
 ## Installation
