@@ -1,4 +1,4 @@
-import pydradis3
+from pydradis3 import Pydradis3
 from json import dumps
 import csv
 from sys import argv, exit, version
@@ -14,12 +14,13 @@ class CsvToDradis(object):
         self.titleColumn = 0      # 'title' column  in csv required for all exports
         self.nodeNameColumn = 0  # 'node_name' column in csv required for both nodes exports
         self.issueIdColumn = 0   # 'issue_id' column in csv required for nodes w/evidence exports
+        self._headers = {}
         # Dradis API Configuration
         self.verifyCert = True    # change this to make requests without verifying
         self.dradisApiToken = self.arg.dradisApiToken
         self.dradisProjectId = self.arg.dradisProjectId
         self.dradisUrl = self.arg.dradisUrl
-        self.dradisDebug = False
+        self.dradisDebug = True
         self.dradisSession = Pydradis3(self.dradisApiToken, self.dradisUrl, self.dradisDebug, self.verifyCert)
 
     def run(self):
@@ -53,7 +54,7 @@ class CsvToDradis(object):
             # Process each column into the dictionary payload
             for k in self._headers.keys():
                 text += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
-            data = {'issue': {'text': text}}
+            data = {'text': text}
             # Call create_issue_raw from pydradis3 which accepts a manually constructed payload as data
             createIssue = self.dradisSession.create_issue_raw(self.dradisProjectId, data=data)
             if createIssue:
@@ -68,16 +69,17 @@ class CsvToDradis(object):
             counter = counter + 1
             # Get a list of existing nodes from pydradis3
             get_nodes = self.dradisSession.get_nodelist(self.dradisProjectId)
-            for n in get_nodes.json():
+            for n in get_nodes:
                 # Create note on a matched node
-                if row[self.nodeNameColumn].lower() == n['label'].lower():
+                createNote = None
+                if row[self.nodeNameColumn].lower() == n[0].lower():
                     notes = '#[Title]#\r\n' + row[self.titleColumn] + '\r\n\r\n'
                     # Process each column into the dictionary payload
                     for k in self._headers.keys():
                         notes += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
-                    data = {"note": {"text": notes}, "category_id": 1}
+                    # data = {"note": {"text": notes}, "category_id": 1}
                     # Call create_node_raw from pydradis3 which accepts a manually constructed payload as data
-                    createNote = self.dradisSession.create_note_raw(self.dradisProjectId, node_id=n['id'], data=data)
+                    createNote = self.dradisSession.create_note_raw(self.dradisProjectId, node_id=n[1], data=notes)
                 if createNote:
                     print("Row {0} Node was exported into Dradis".format(counter))
                 else:
@@ -90,34 +92,36 @@ class CsvToDradis(object):
             counter = counter + 1
             # Get a list of existing nodes from pydradis
             get_nodes = self.dradisSession.get_nodelist(self.dradisProjectId)
-            for n in get_nodes.json():
-                # Create evidence on matched node
-                if row[self.nodeNameColumn].lower() == n['label'].lower():
-                    content = '#[Title]#\r\n' + row[self.titleColumn] + '\r\n\r\n'
-                    # Process each column into the dictionary payload
-                    for k in self._headers.keys():
-                        content += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
-                    # Call create_evidence_raw from pydradis3 which accepts a manually constructed content payload as data
-                    createEvidence = self.dradisSession.create_evidence_raw(pid=self.dradisProjectId, node_id=n['id'], issue_id=row[self.issueIdColumn], data=content)
-                # Node does not exist, so create it then create evidence
-                else:
-                    content = '#[Title]#\r\n' + row[self.titleColumn] + '\r\n\r\n'
-                    # Process each column into the dictionary payload
-                    for k in self._headers.keys():
-                        content += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
-                    # Call create_evidence_raw from pydradis3 which accepts a manually constructed content payload as data
-                    createNode = self.dradisSession.create_node(pid=self.dradisProjectId, label=row[self.nodeNameColumn], type_id=0, parent_id=None, position=1)
-                    if createNode:
-                        print("Row {0} Node was exported into Dradis".format(counter))
-                    else:
-                        print("Row {0} Node was not exported into Dradis".format(counter))
-                        continue
+            if any([nodeName[0] == row[self.nodeNameColumn].lower() for nodeName in get_nodes]):
+                content = '#[Title]#\r\n' + row[self.titleColumn] + '\r\n\r\n'
+                for n in get_nodes:
+                    # Create evidence on matched node
+                    if row[self.nodeNameColumn].lower() == n[0].lower():
+                        content = '#[Title]#\r\n' + row[self.titleColumn] + '\r\n\r\n'
+                        # Process each column into the dictionary payload
+                        for k in self._headers.keys():
+                            content += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(
+                                row[int(k)]) + '\r\n\r\n'
+                        # Call create_evidence_raw from pydradis3 which accepts a manually constructed content payload as data
+                        createEvidence = self.dradisSession.create_evidence_raw(pid=self.dradisProjectId, node_id=n[1], issue_id=row[self.issueIdColumn], data=content)
+            # Node does not exist, so create it then create evidence
+            else:
+                content = '#[Title]#\r\n' + row[self.titleColumn] + '\r\n\r\n'
+                # Process each column into the dictionary payload
+                for k in self._headers.keys():
+                    content += '#[{0}]#\r\n'.format(self._headers[k]) + '{0}\r\n'.format(row[int(k)]) + '\r\n\r\n'
+                # Call create_evidence_raw from pydradis3 which accepts a manually constructed content payload as data
+                createNode = self.dradisSession.create_node(pid=self.dradisProjectId, label=row[self.nodeNameColumn], type_id=0, parent_id=None, position=1)
+                if createNode:
+                    print("Row {0} Node was exported into Dradis".format(counter))
                     # Call create_evidence_raw from pydradis3 which accepts a manually constructed content payload as data
                     createEvidence = self.dradisSession.create_evidence_raw(pid=self.dradisProjectId, node_id=row[self.nodeNameColumn], issue_id=row[self.issueIdColumn], data=content)
-                if createEvidence:
-                    print("Row {0} Evidence was exported into Dradis\n\n".format(counter))
+                    if createEvidence:
+                        print("Row {0} Evidence was exported into Dradis\n\n".format(counter))
+                    else:
+                        print("Row {0} Evidence was not exported into Dradis\n\n".format(counter))
                 else:
-                    print("Row {0} Evidence was not exported into Dradis\n\n".format(counter))
+                    print("Row {0} Node was not exported into Dradis".format(counter))
         return
 
     def csvHeaderCheck(self, headers):
