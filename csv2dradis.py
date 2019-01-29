@@ -20,7 +20,7 @@ class CsvToDradis(object):
         self.dradisApiToken = self.arg.dradisApiToken
         self.dradisProjectId = self.arg.dradisProjectId
         self.dradisUrl = self.arg.dradisUrl
-        self.dradisDebug = True
+        self.dradisDebug = False
         self.dradisSession = Pydradis3(self.dradisApiToken, self.dradisUrl, self.dradisDebug, self.verifyCert)
 
     def run(self):
