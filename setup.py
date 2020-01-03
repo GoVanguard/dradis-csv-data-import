@@ -7,7 +7,7 @@ setuptools.setup(
     name="csv2dradis",
     version="0.2.0",
     author="Shane Scott",
-    author_email="sscott@gvit.com",
+    author_email="sscott@govanguard.com",
     description="Optimization of csvtodradis",
     long_description=long_description,
     long_description_content_type="text/markdown",
